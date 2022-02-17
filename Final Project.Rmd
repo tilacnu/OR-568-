@@ -1,0 +1,53 @@
+---
+title: "Final Project"
+author: "Patrick Nguyen"
+date: '2022-02-17'
+output: html_document
+---
+
+Setup and data cleaning
+```{r setup}
+#Library
+library(caret)
+library("corrplot")
+library(Hmisc)
+library("skimr")
+
+#set directory
+setwd("F:/Data Analytic Engineering Program -GMU/OR568/Project/Source/archive")
+Cancer_Data <- read.csv("breast-cancer.csv")
+
+
+
+#remove incomplete data. 13 records with incompleted data got removed.
+Cancer_Data[ Cancer_Data == 0] <-NA
+Cancer_Data_df <- na.omit(Cancer_Data)
+
+
+#Create list of near zero variables and count total number of predictors.
+Nzv <- as.vector(nearZeroVar(Cancer_Data_df,name = TRUE))
+length(Nzv)
+
+#Split data to predictors and response
+Cancer_Predictor <- Cancer_Data_df[,-(1:2)]
+Cancer_Response <- Cancer_Data_df[,2]
+
+```
+Explanatory Data Analysis
+```{r}
+#Cor Plot matrix
+Cancer_cor <- cor(Cancer_Predictor)
+
+corrplot(Cancer_cor,order="AOE",method="ellipse",
+  type = "upper",
+  tl.col="black",
+  tl.cex = .57,
+  title = "Cancer Predictor Correlation",mar=c(1,1,1,1))
+
+#Data Summary
+skim(Cancer_Predictor)
+hist.data.frame(Cancer_Predictor)
+
+#boxplot all variables by type of tumor
+plot_boxplot(Cancer_Data_df[,-1], by = "diagnosis")
+```
