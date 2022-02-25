@@ -51,3 +51,90 @@ hist.data.frame(Cancer_Predictor)
 #boxplot all variables by type of tumor
 plot_boxplot(Cancer_Data_df[,-1], by = "diagnosis")
 ```
+
+
+
+
+
+LOGISTIC REGRESSION
+```{r}
+#Convert response to factor
+Cancer_Data_df$diagnosis <- as.factor(Cancer_Data_df$diagnosis)
+
+
+#split data
+set.seed(100)
+split <- sample.split(Cancer_Data_df,SplitRatio = 0.8)
+split
+train <-subset(Cancer_Data_df, split =="TRUE")
+test <- subset(Cancer_Data_df, split =="FALSE")
+
+#Full model
+full_log <- glm(diagnosis~., data=train[,-1], family="binomial")
+plot(full_log)
+full_log_pred <-  predict(full_log,test[,-(1:2)], type="response")
+
+full_predict_df <- matrix(ifelse(full_log_pred >.5,"M","B"))
+
+full_log_value <- data.frame(obs=test[,2], pred = full_predict_df )
+defaultSummary(full_log_value)
+
+
+
+
+#Lasso Regression Model----
+#Find the optimal value of lambda that minimizes the cross-validation error
+set.seed(100)
+cv_lasso <- cv.glmnet(x=as.matrix(train[,-(1:2)]),y=train[,2],family="binomial",alpha=1,type.measure="mse")
+plot(cv_lasso)
+
+cv_lasso$lambda.min
+cv_lasso$lambda.1se
+
+#Find coefficients of most relevant variables using lambda.min and lambda.1se.
+coef(cv_lasso, cv_lasso$lambda.min)
+coef(cv_lasso, cv_lasso$lambda.1se)
+
+---------------------------------
+
+
+#Final Lasso model using min lambda
+lasso.model.min <- glmnet(x=as.matrix(train[,-(1:2)]),y=train[,2],family="binomial",alpha=1, lambda = cv_lasso$lambda.min)
+
+
+lasso.pred.min <- predict(lasso.model.min, as.matrix(test[,-(1:2)]), type="response")
+
+min_predict_df <- matrix(ifelse(lasso.pred.min >.5,"M","B"))
+
+lasso.value.min <- data.frame(obs=test[,2], pred = min_predict_df )
+defaultSummary(lasso.value.min)
+
+--------------------------------
+
+
+#Final Lasso model using 1se lambda
+lasso.model.1se <- glmnet(x=as.matrix(train[,-(1:2)]),y=train[,2],family="binomial",alpha=1, lambda = cv_lasso$lambda.1se)
+
+
+lasso.pred.1se <- predict(lasso.model.1se, as.matrix(test[,-(1:2)]), type="response")
+
+se_predict_df <- matrix(ifelse(lasso.pred.1se >.5,"M","B"))
+
+lasso.value.1se <- data.frame(obs=test[,2], pred = se_predict_df )
+defaultSummary(lasso.value.1se)
+
+
+---------------------------------
+
+#Regression model with selected variables. 
+full_Reg <- glm(diagnosis~concavity_mean + concave.points_mean + radius_se + fractal_dimension_se + radius_worst + texture_worst + perimeter_worst + smoothness_worst + concave.points_worst +symmetry_worst, data=train[,-1], family="binomial")
+plot(full_Reg)
+
+reg_pred <-  predict(full_Reg,test[,-(1:2)], type="response")
+
+reg_predict_df <- matrix(ifelse(reg_pred >.5,"M","B"))
+
+full_reg_value <- data.frame(obs=test[,2], pred = reg_predict_df )
+defaultSummary(full_reg_value)
+
+```
